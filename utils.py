@@ -7,7 +7,7 @@ import datetime
 import markdown
 import os
 
-# ================= LOAD EMBEDDING MODEL =================
+# ================= VECTOR MODEL =================
 vectorizer = TfidfVectorizer()
 
 
@@ -54,50 +54,61 @@ class AXONRAG:
     # ================= BUILD VECTOR INDEX =================
     def build_index(self):
 
-    if not self.chunks:
-        return False
+        if not self.chunks:
+            return False
 
-    embeddings = vectorizer.fit_transform(
-        self.chunks
-    ).toarray()
+        embeddings = vectorizer.fit_transform(
+            self.chunks
+        ).toarray()
 
-    embeddings = np.array(embeddings).astype("float32")
+        embeddings = np.array(
+            embeddings
+        ).astype("float32")
 
-    dimension = embeddings.shape[1]
+        dimension = embeddings.shape[1]
 
-    self.index = faiss.IndexFlatL2(dimension)
+        self.index = faiss.IndexFlatL2(
+            dimension
+        )
 
-    self.index.add(embeddings)
+        self.index.add(embeddings)
 
-    return True
+        return True
 
     # ================= RETRIEVE =================
     def retrieve(self, query, k=1):
 
-    if self.index is None:
-        return []
+        if self.index is None:
+            return []
 
-    query_embedding = vectorizer.transform(
-        [query]
-    ).toarray()
+        query_embedding = vectorizer.transform(
+            [query]
+        ).toarray()
 
-    query_embedding = np.array(
-        query_embedding
-    ).astype("float32")
+        query_embedding = np.array(
+            query_embedding
+        ).astype("float32")
 
-    distances, indices = self.index.search(
-        query_embedding,
-        k
-    )
+        distances, indices = self.index.search(
+            query_embedding,
+            k
+        )
 
-    results = []
+        results = []
 
-    for i in indices[0]:
+        for i in indices[0]:
 
-        if i < len(self.chunks):
-            results.append(self.chunks[i])
+            if i < len(self.chunks):
+                results.append(self.chunks[i])
 
-    return results
+        return results
+
+    # ================= SEARCH DOCS =================
+    def tool_search_docs(self, query):
+
+        results = self.retrieve(query)
+
+        return "\n\n".join(results)
 
     # ================= MIND MAP =================
     def tool_mind_map(self, topic):
@@ -206,6 +217,7 @@ class AXONRAG:
         else:
 
             if not api_key:
+
                 answer = "⚠ Please enter Gemini API key."
 
             else:
@@ -253,28 +265,10 @@ Question:
 
                 except Exception as e:
 
-                    error_message = str(e)
-
-                    if "429" in error_message:
-
-                        answer = """
-                        ⚠ Gemini quota exceeded.<br><br>
-
-                        Please:
-                        <br>
-                        • Create a new API key
-                        <br>
-                        • Or wait some time
-                        <br>
-                        • Or try again later
-                        """
-
-                    else:
-
-                        answer = f"""
-                        ⚠ Gemini Error:<br><br>
-                        {error_message}
-                        """
+                    answer = f"""
+                    ⚠ Gemini Error:<br><br>
+                    {str(e)}
+                    """
 
         # ================= STORE CHAT =================
         if session_id not in self.sessions:
