@@ -1,7 +1,10 @@
 fastapi
 uvicorn
-scikit-learn
-faiss-cpu
-pypdf
-google-generativeai
+jinja2
 python-multipart
+faiss-cpu
+numpy
+pypdf
+markdown
+google-genai
+scikit-learn
