@@ -31,9 +31,9 @@ stored_api_key = None
 async def home(request: Request):
 
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        name="index.html",
+        request=request,
+        context={
             "history": axon_rag.get_history(current_session),
             "sessions": axon_rag.get_sessions(),
             "current_session": current_session,
