@@ -1,14 +1,14 @@
 import faiss
 import numpy as np
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from google import genai
 import datetime
 import markdown
 import os
 
 # ================= LOAD EMBEDDING MODEL =================
-model = SentenceTransformer("all-MiniLM-L6-v2")
+vectorizer = TfidfVectorizer()
 
 
 class AXONRAG:
@@ -54,48 +54,50 @@ class AXONRAG:
     # ================= BUILD VECTOR INDEX =================
     def build_index(self):
 
-        if not self.chunks:
-            return False
+    if not self.chunks:
+        return False
 
-        embeddings = model.encode(self.chunks)
+    embeddings = vectorizer.fit_transform(
+        self.chunks
+    ).toarray()
 
-        embeddings = np.array(embeddings).astype("float32")
+    embeddings = np.array(embeddings).astype("float32")
 
-        dimension = embeddings.shape[1]
+    dimension = embeddings.shape[1]
 
-        self.index = faiss.IndexFlatL2(dimension)
+    self.index = faiss.IndexFlatL2(dimension)
 
-        self.index.add(embeddings)
+    self.index.add(embeddings)
 
-        return True
+    return True
 
     # ================= RETRIEVE =================
     def retrieve(self, query, k=1):
 
-        if self.index is None:
-            return []
+    if self.index is None:
+        return []
 
-        query_embedding = model.encode([query])
+    query_embedding = vectorizer.transform(
+        [query]
+    ).toarray()
 
-        query_embedding = np.array(query_embedding).astype("float32")
+    query_embedding = np.array(
+        query_embedding
+    ).astype("float32")
 
-        distances, indices = self.index.search(query_embedding, k)
+    distances, indices = self.index.search(
+        query_embedding,
+        k
+    )
 
-        results = []
+    results = []
 
-        for i in indices[0]:
+    for i in indices[0]:
 
-            if i < len(self.chunks):
-                results.append(self.chunks[i])
+        if i < len(self.chunks):
+            results.append(self.chunks[i])
 
-        return results
-
-    # ================= SEARCH DOCS =================
-    def tool_search_docs(self, query):
-
-        results = self.retrieve(query)
-
-        return "\n\n".join(results)
+    return results
 
     # ================= MIND MAP =================
     def tool_mind_map(self, topic):
